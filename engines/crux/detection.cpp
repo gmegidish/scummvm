@@ -32,7 +32,6 @@ static const PlainGameDescriptor cruxGames[] = {
 namespace Crux {
 
 static const ADGameDescription gameDescriptions[] = {
-
 	{
 		"and",
 		0,
@@ -48,16 +47,16 @@ static const ADGameDescription gameDescriptions[] = {
 
 } // End of namespace Crux
 
-class CruxMetaEngineDetection : public AdvancedMetaEngineDetection {
+class CruxMetaEngineDetection : public AdvancedMetaEngineDetection<ADGameDescription> {
 public:
-	CruxMetaEngineDetection() : AdvancedMetaEngineDetection(Crux::gameDescriptions, sizeof(ADGameDescription), cruxGames) {
-	}
-
-	const char *getEngineId() const override {
-		return "crux";
+	CruxMetaEngineDetection() : AdvancedMetaEngineDetection(Crux::gameDescriptions, cruxGames) {
 	}
 
 	const char *getName() const override {
+		return "crux";
+	}
+
+	const char *getEngineName() const override {
 		return "Crux";
 	}
 
